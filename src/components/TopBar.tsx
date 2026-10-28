@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { LANGUAGES, type Language } from '../templates'
 import type { Theme } from '../hooks/useTheme'
+import { ThemeToggle, Wordmark } from './ThemeToggle'
 
 interface Props {
   language: Language
@@ -7,6 +9,9 @@ interface Props {
   running: boolean
   canRun: boolean
   onRun: () => void
+  sessionCode: string
+  onCopyCode: () => void
+  presence: ReactNode
   theme: Theme
   onToggleTheme: () => void
   disabled: boolean
@@ -20,6 +25,9 @@ export function TopBar({
   running,
   canRun,
   onRun,
+  sessionCode,
+  onCopyCode,
+  presence,
   theme,
   onToggleTheme,
   disabled,
@@ -27,12 +35,7 @@ export function TopBar({
   return (
     <header className="topbar">
       <div className="topbar__group">
-        <span className="wordmark">
-          <span className="wordmark__mark" aria-hidden="true">
-            {'</>'}
-          </span>
-          Scratchroom
-        </span>
+        <Wordmark />
         <select
           className="select"
           aria-label="Language"
@@ -59,33 +62,29 @@ export function TopBar({
       </div>
 
       <div className="topbar__group">
+        {presence}
         <button
           type="button"
-          className="btn btn--icon"
-          onClick={onToggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          className="btn session-code"
+          onClick={onCopyCode}
+          title="Copy the session code to share it"
+          aria-label={`Session code ${sessionCode}. Click to copy.`}
         >
-          {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          <span className="session-code__label">Code</span>
+          <span className="mono">{sessionCode}</span>
+          <CopyIcon />
         </button>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
     </header>
   )
 }
 
-function SunIcon() {
+function CopyIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </svg>
-  )
-}
-
-function MoonIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
   )
 }

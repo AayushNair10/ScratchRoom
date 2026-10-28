@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CodeEditor } from './components/CodeEditor'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { Presence } from './components/Presence'
+import { RemoteCursorStyles } from './components/RemoteCursorStyles'
 import { ResultsPanel } from './components/ResultsPanel'
 import { SplitPane } from './components/SplitPane'
 import { StdinPanel } from './components/StdinPanel'
+import { useToast } from './components/Toast'
 import { TopBar } from './components/TopBar'
+import { copyText } from './clipboard'
+import { useConnectionStatus, usePeers } from './hooks/usePresence'
 import { useTheme } from './hooks/useTheme'
 import { useYMapValue } from './hooks/useYMapValue'
-import type { Room } from './room'
+import { formatCode, type Room } from './room'
 import type { RunResult } from './run/types'
 import {
   DEFAULT_LANGUAGE,
@@ -25,6 +30,24 @@ export default function App({ room }: { room: Room }) {
   const lastResult = useYMapValue<RunResult>(room.meta, 'lastResult')
   const [running] = useState(false)
   const [pendingLanguage, setPendingLanguage] = useState<Language | null>(null)
+  const peers = usePeers(room.awareness)
+  const connection = useConnectionStatus(room.provider)
+  const [toast, showToast] = useToast()
+  const sessionCode = formatCode(room.id)
+
+  const copyCode = async () => {
+    showToast((await copyText(sessionCode)) ? 'Copied!' : `Couldn’t copy. The code is ${sessionCode}`)
+  }
+
+  // Nothing is stored, so if you're alone, leaving the page loses the code. Ask first.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      const alone = room.awareness.getStates().size <= 1
+      if (alone && !isUnmodifiedTemplate(room.code.toString())) e.preventDefault()
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [room])
 
   const applyLanguage = useCallback(
     (next: Language, replaceCode: boolean) => {
@@ -69,6 +92,9 @@ export default function App({ room }: { room: Room }) {
         running={running}
         canRun={false}
         onRun={run}
+        sessionCode={sessionCode}
+        onCopyCode={copyCode}
+        presence={<Presence peers={peers} status={connection} />}
         theme={theme}
         onToggleTheme={toggleTheme}
         disabled={false}
@@ -86,6 +112,9 @@ export default function App({ room }: { room: Room }) {
           }
         />
       </main>
+
+      <RemoteCursorStyles peers={peers} />
+      {toast}
 
       {pendingLanguage && (
         <ConfirmDialog

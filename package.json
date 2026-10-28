@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "signaling": "node node_modules/y-webrtc/bin/server.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

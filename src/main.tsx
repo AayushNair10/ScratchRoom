@@ -2,21 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './monaco'
 import './styles.css'
-import App from './App'
-import { createRoom, initRoomIfEmpty, resolveRoomId } from './room'
+import Root from './Root'
 
-const { id, created } = resolveRoomId()
-const room = createRoom(id, created)
-initRoomIfEmpty(room)
-
-// Handy for poking at the shared state from the dev-tools console.
-if (import.meta.env.DEV) Object.assign(window, { room })
-
-// Editing the room ID in the address bar should land you in that room.
+// Back/forward or editing the code in the address bar: start over cleanly.
 window.addEventListener('hashchange', () => window.location.reload())
+window.addEventListener('popstate', () => window.location.reload())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App room={room} />
+    <Root />
   </StrictMode>,
 )
