@@ -29,7 +29,7 @@ function NicknameField({ value, onChange }: { value: string; onChange: (v: strin
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={NICKNAME_MAX_LENGTH}
-        placeholder="e.g. Aayush"
+        placeholder="e.g. Alex"
         autoComplete="off"
         autoFocus
       />
