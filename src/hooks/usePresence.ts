@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { WebrtcProvider } from 'y-webrtc'
 import type { Awareness } from 'y-protocols/awareness'
-import type { UserInfo } from '../room'
+import { cleanNickname, type UserInfo } from '../room'
 
 export interface Peer {
   clientId: number
@@ -15,7 +15,7 @@ function sanitizeUser(value: unknown): UserInfo | null {
   const { name, color } = value as Record<string, unknown>
   if (typeof name !== 'string' || typeof color !== 'string') return null
   if (!/^#[0-9a-f]{6}$/i.test(color)) return null
-  return { name: name.replace(/[^\p{L}\p{N} ]/gu, '').slice(0, 24) || 'Guest', color }
+  return { name: cleanNickname(name) || 'Guest', color }
 }
 
 function readPeers(awareness: Awareness): Peer[] {

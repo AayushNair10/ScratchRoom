@@ -52,7 +52,9 @@ export function CodeEditor({ room, language, theme, readOnly, onRun }: Props) {
     model.setEOL(monaco.editor.EndOfLineSequence.LF)
     const binding = new MonacoBinding(room.code, model, new Set([editor]), room.awareness)
     editor.onDidDispose(() => binding.destroy())
+    // Both Ctrl+Enter and Cmd+Enter, on every platform (CtrlCmd alone is only ⌘ on macOS).
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => onRunRef.current())
+    editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter, () => onRunRef.current())
     editor.focus()
   }
 

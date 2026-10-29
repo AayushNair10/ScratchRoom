@@ -1,3 +1,4 @@
+import type { PythonStatus } from '../run/pythonRunner'
 import type { RunResult } from '../run/types'
 import { languageLabel } from '../templates'
 
@@ -14,12 +15,30 @@ function Block({ label, text, tone }: { label: string; text: string; tone?: 'err
   )
 }
 
-export function ResultsPanel({ result, running }: { result: RunResult | undefined; running: boolean }) {
+interface Props {
+  result: RunResult | undefined
+  /** Who ran it, using their current nickname when they're still here. */
+  ranBy: string | undefined
+  runningLabel: string | null
+  /** Shown only while Python is the selected language. */
+  pythonStatus: PythonStatus | null
+}
+
+export function ResultsPanel({ result, ranBy, runningLabel, pythonStatus }: Props) {
   return (
     <section className="results" aria-live="polite">
       <div className="panel-header">
         <span>Output</span>
-        {running && <span className="results__status">Running…</span>}
+        {runningLabel ? (
+          <span className="results__status">
+            <span className="spinner" aria-hidden="true" />
+            {runningLabel}
+          </span>
+        ) : pythonStatus === 'loading' ? (
+          <span className="results__status is-muted">Loading Python…</span>
+        ) : pythonStatus === 'error' ? (
+          <span className="results__status is-error">Python failed to load. Run to retry.</span>
+        ) : null}
       </div>
       <div className="results__body">
         {!result ? (
@@ -39,6 +58,7 @@ export function ResultsPanel({ result, running }: { result: RunResult | undefine
                 </span>
               )}
               <span>{formatTime(result.timeMs)}</span>
+              {ranBy && <span>run by {ranBy}</span>}
             </div>
             {result.message && (
               <div className={`result-message is-${result.status === 'timeout' ? 'warn' : 'error'}`}>

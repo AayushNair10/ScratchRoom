@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scratchroom-signaling",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [{ "name": "SIGNALING", "class_name": "SignalingHub" }]
+  },
+  // SQLite-backed Durable Objects are available on the Workers free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalingHub"] }],
+  "vars": {
+    // Optional: lock the server to your site, e.g. "https://scratchroom.pages.dev".
+    // Leave empty to allow any origin.
+    "ALLOWED_ORIGINS": ""
+  }
+}

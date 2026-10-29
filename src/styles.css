@@ -609,6 +609,19 @@ kbd {
   white-space: nowrap;
   pointer-events: none;
   z-index: 10;
+  /* Restarts whenever the cursor moves (Monaco re-renders the decoration), then fades out
+     so the tag doesn't sit on top of the code. */
+  animation: cursor-tag 2.5s ease-in forwards;
+}
+
+@keyframes cursor-tag {
+  0%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* ---------- Landing ---------- */
@@ -711,4 +724,149 @@ kbd {
   margin: 10px 0 0 !important;
   color: var(--error) !important;
   font-size: 13px;
+}
+
+.results__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.results__status .spinner {
+  width: 10px;
+  height: 10px;
+}
+
+.results__status.is-muted {
+  color: var(--text-muted);
+}
+
+.results__status.is-error {
+  color: var(--error);
+}
+
+/* ---------- Presence popover ---------- */
+
+.presence-wrap {
+  position: relative;
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 150;
+  width: 260px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.popover__note {
+  margin: 0 0 10px;
+  padding: 8px;
+  border-radius: var(--radius);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.people {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.people .presence__dot {
+  margin: 0;
+  border: 0;
+  flex: 0 0 auto;
+}
+
+.people__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people__you {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.rename {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.rename label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rename__row {
+  display: flex;
+  gap: 6px;
+}
+
+.input--small {
+  height: 32px;
+  font-size: 13px;
+  padding: 0 8px;
+}
+
+/* ---------- Landing nickname ---------- */
+
+.nickname-card {
+  margin-bottom: 16px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.nickname-card label {
+  display: block;
+  cursor: default;
+}
+
+.nickname-card p {
+  margin-bottom: 12px;
+}
+
+.input--large {
+  width: min(420px, 100%);
+  height: 44px;
+  font-size: 16px;
+}
+
+.join-code {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.join-prompt__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }

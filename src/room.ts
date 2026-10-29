@@ -59,7 +59,19 @@ function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)]
 }
 
-function makeUser(taken: Set<string>): UserInfo {
+export const NICKNAME_MAX_LENGTH = 24
+
+/** Trims a nickname to something safe to show (and to put in a CSS string). */
+export function cleanNickname(value: string): string {
+  return value
+    .replace(/[^\p{L}\p{N} .'_-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, NICKNAME_MAX_LENGTH)
+}
+
+/** A colour plus a default "Teal Otter"-style name, avoiding colours already taken. */
+function makeIdentity(taken: Set<string>): UserInfo {
   const free = PALETTE.filter((p) => !taken.has(p.color))
   const swatch = pick(free.length ? free : PALETTE)
   return { name: `${swatch.name} ${pick(ANIMALS)}`, color: swatch.color }
@@ -81,10 +93,12 @@ export interface Room {
   meta: Y.Map<unknown>
   provider: WebrtcProvider
   awareness: Awareness
+  /** Changes how you appear to others. Empty means the default name. */
+  setNickname: (nickname: string) => void
   destroy: () => void
 }
 
-export function openRoom(code: string, created: boolean): Room {
+export function openRoom(code: string, created: boolean, nickname = ''): Room {
   const doc = new Y.Doc()
   const provider = new WebrtcProvider(`scratchroom-${code}`, doc, {
     signaling: SIGNALING_SERVERS,
@@ -92,23 +106,21 @@ export function openRoom(code: string, created: boolean): Room {
     password: code,
   })
   const awareness = provider.awareness
-  awareness.setLocalStateField('user', makeUser(new Set()))
+  let identity = makeIdentity(new Set())
+  let customName = cleanNickname(nickname)
+  const publishUser = () =>
+    awareness.setLocalStateField('user', { name: customName || identity.name, color: identity.color })
+  publishUser()
 
   // Colours are picked before we know who else is here; once peers show up,
   // swap to a free colour if we clashed with someone who joined earlier.
   setTimeout(() => {
-    const me = awareness.getLocalState()?.user as UserInfo | undefined
-    if (!me) return
-    const clash = [...awareness.getStates()].some(
-      ([id, s]) => id < doc.clientID && (s.user as UserInfo | undefined)?.color === me.color,
-    )
-    if (clash) {
-      const taken = new Set(
-        [...awareness.getStates()]
-          .filter(([id]) => id !== doc.clientID)
-          .map(([, s]) => (s.user as UserInfo | undefined)?.color ?? ''),
-      )
-      awareness.setLocalStateField('user', makeUser(taken))
+    const othersColors = [...awareness.getStates()]
+      .filter(([id]) => id !== doc.clientID)
+      .map(([id, s]) => ({ id, color: (s.user as UserInfo | undefined)?.color }))
+    if (othersColors.some((o) => o.id < doc.clientID && o.color === identity.color)) {
+      identity = makeIdentity(new Set(othersColors.map((o) => o.color ?? '')))
+      publishUser()
     }
   }, 2500)
 
@@ -121,6 +133,10 @@ export function openRoom(code: string, created: boolean): Room {
     meta: doc.getMap('meta'),
     provider,
     awareness,
+    setNickname: (value) => {
+      customName = cleanNickname(value)
+      publishUser()
+    },
     destroy: () => {
       provider.destroy()
       doc.destroy()
