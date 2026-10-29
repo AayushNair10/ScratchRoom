@@ -96,6 +96,8 @@ export interface Room {
   stdin: Y.Text
   /** language, expiresAt, lastResult, … */
   meta: Y.Map<unknown>
+  /** Whiteboard strokes: Y.Maps with an `id` and a flat Y.Array of x,y points (0–1). */
+  strokes: Y.Array<Y.Map<unknown>>
   provider: WebrtcProvider
   awareness: Awareness
   /** The nickname this person chose ('' if they're using the default name). */
@@ -147,6 +149,7 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
     code: doc.getText('code'),
     stdin: doc.getText('stdin'),
     meta: doc.getMap('meta'),
+    strokes: doc.getArray<Y.Map<unknown>>('strokes'),
     provider,
     awareness,
     getNickname: () => customName,
@@ -164,6 +167,7 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
         room.code.delete(0, room.code.length)
         room.stdin.delete(0, room.stdin.length)
         room.meta.clear()
+        room.strokes.delete(0, room.strokes.length)
       })
       provider.destroy()
     },

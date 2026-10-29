@@ -19,6 +19,7 @@
   --shadow: 0 8px 30px rgba(15, 23, 42, 0.16);
   --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --ink: #1c2026;
   --radius: 6px;
   --topbar-h: 52px;
   color-scheme: light;
@@ -43,6 +44,7 @@
   --danger: #ff5c5c;
   --ok: #4cc38a;
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --ink: #e6e8ec;
   color-scheme: dark;
 }
 
@@ -1029,4 +1031,88 @@ kbd {
 
 .wordmark--button:focus-visible {
   outline: 2px solid var(--accent);
+}
+
+/* ---------- Whiteboard ---------- */
+
+.whiteboard {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.whiteboard__toolbar {
+  flex: 0 0 var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.whiteboard__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.whiteboard__title {
+  font-weight: 650;
+  font-size: 15px;
+  margin-right: 8px;
+}
+
+.whiteboard__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.btn.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.whiteboard__canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: var(--surface);
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+.whiteboard__canvas.is-pen {
+  cursor: crosshair;
+}
+
+.whiteboard__canvas.is-eraser {
+  cursor: none;
+}
+
+.whiteboard__empty {
+  position: absolute;
+  top: calc(50% + var(--topbar-h) / 2);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .whiteboard__hint {
+    display: none;
+  }
 }

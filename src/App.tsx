@@ -6,6 +6,7 @@ import { RemoteCursorStyles } from './components/RemoteCursorStyles'
 import { ResultsPanel } from './components/ResultsPanel'
 import { SessionEnded } from './components/SessionEnded'
 import { ExpiryBanner, SessionTimer } from './components/SessionTimer'
+import { Whiteboard } from './components/Whiteboard'
 import { SplitPane } from './components/SplitPane'
 import { StdinPanel } from './components/StdinPanel'
 import { useToast } from './components/Toast'
@@ -54,6 +55,8 @@ export default function App({ room, onNewSession, onHome }: Props) {
   const pythonStatus = usePythonStatus()
   const [pendingLanguage, setPendingLanguage] = useState<Language | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [whiteboardOpen, setWhiteboardOpen] = useState(false)
+  const closeWhiteboard = useCallback(() => setWhiteboardOpen(false), [])
   const peers = usePeers(room.awareness)
   const connection = useConnectionStatus(room.provider)
   const [toast, showToast] = useToast()
@@ -189,6 +192,7 @@ export default function App({ room, onNewSession, onHome }: Props) {
         onToggleTheme={toggleTheme}
         disabled={expired}
         onHome={() => setConfirmLeave(true)}
+        onOpenWhiteboard={() => setWhiteboardOpen(true)}
       />
       {!expired && remainingMs !== null && remainingMs <= WARN_MS && dismissedFor !== expiresAt && (
         <ExpiryBanner
@@ -220,6 +224,16 @@ export default function App({ room, onNewSession, onHome }: Props) {
 
       <RemoteCursorStyles peers={peers} />
       {toast}
+
+      {whiteboardOpen && !expired && (
+        <Whiteboard
+          strokes={room.strokes}
+          theme={theme}
+          timer={<SessionTimer remainingMs={remainingMs} onExtend={extend} disabled={expired} />}
+          readOnly={expired}
+          onClose={closeWhiteboard}
+        />
+      )}
 
       {expired && <SessionEnded onNewSession={onNewSession} onHome={onHome} />}
 

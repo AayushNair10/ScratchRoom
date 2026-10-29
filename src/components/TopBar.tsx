@@ -17,6 +17,7 @@ interface Props {
   onToggleTheme: () => void
   disabled: boolean
   onHome: () => void
+  onOpenWhiteboard: () => void
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
@@ -35,6 +36,7 @@ export function TopBar({
   onToggleTheme,
   disabled,
   onHome,
+  onOpenWhiteboard,
 }: Props) {
   return (
     <header className="topbar">
@@ -68,6 +70,10 @@ export function TopBar({
       <div className="topbar__group">
         {timer}
         <span className="topbar__divider" aria-hidden="true" />
+        <button type="button" className="btn" onClick={onOpenWhiteboard} disabled={disabled} title="Open the shared whiteboard">
+          <BoardIcon />
+          Whiteboard
+        </button>
         {presence}
         <button
           type="button"
@@ -83,6 +89,15 @@ export function TopBar({
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
     </header>
+  )
+}
+
+function BoardIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="13" rx="2" />
+      <path d="M8 21l4-4 4 4M7 13l3-3 2 2 4-4" />
+    </svg>
   )
 }
 
