@@ -1,7 +1,7 @@
 {
   "name": "scratchroom",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -32,5 +32,8 @@
   },
   "overrides": {
     "dompurify": "^3.4.17"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

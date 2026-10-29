@@ -204,7 +204,15 @@ export default function App({ room, onNewSession, onHome }: Props) {
       <main className="workspace">
         <SplitPane
           left={
-            <CodeEditor room={room} language={language} theme={theme} readOnly={expired} onRun={run} />
+            <div className="editor-pane">
+              <CodeEditor room={room} language={language} theme={theme} readOnly={expired} onRun={run} />
+              {storedLanguage === undefined && !expired && (
+                <div className="editor-pane__waiting" role="status">
+                  <span className="spinner" aria-hidden="true" />
+                  Loading the session from the others…
+                </div>
+              )}
+            </div>
           }
           right={
             <div className="side-panel">

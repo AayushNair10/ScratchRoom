@@ -550,7 +550,8 @@ kbd {
   margin-left: 0;
 }
 
-.presence.is-offline .presence__label {
+.presence.is-offline .presence__label,
+.presence.is-blocked .presence__label {
   color: var(--warn);
 }
 
@@ -1115,4 +1116,24 @@ kbd {
   .whiteboard__hint {
     display: none;
   }
+}
+
+.editor-pane {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-pane__waiting {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--surface);
+  color: var(--text-muted);
 }

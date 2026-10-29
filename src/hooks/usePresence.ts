@@ -40,16 +40,34 @@ export function usePeers(awareness: Awareness): Peer[] {
   return peers
 }
 
-export type ConnectionStatus = 'connecting' | 'online' | 'offline'
+export type ConnectionStatus = 'connecting' | 'online' | 'offline' | 'blocked'
 
-/** Whether we can currently reach at least one signaling server. */
+/** How long a peer may stay "found but not connected" before we call it blocked. */
+const PEER_CONNECT_GRACE_MS = 10_000
+
+/**
+ * 'online' when we can reach a signaling server, 'offline' when we can't, and
+ * 'blocked' when someone else is in the room but a direct WebRTC connection to
+ * them keeps failing (typically a strict firewall that needs a TURN relay).
+ */
 export function useConnectionStatus(provider: WebrtcProvider): ConnectionStatus {
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   useEffect(() => {
     const started = Date.now()
+    const firstSeen = new Map<string, number>()
     const check = () => {
-      if (provider.signalingConns.some((c) => c.connected)) setStatus('online')
-      else setStatus(Date.now() - started < 5000 ? 'connecting' : 'offline')
+      const now = Date.now()
+      let blocked = false
+      for (const [peerId, conn] of provider.room?.webrtcConns ?? []) {
+        if (conn.connected) {
+          firstSeen.delete(peerId)
+          continue
+        }
+        if (!firstSeen.has(peerId)) firstSeen.set(peerId, now)
+        if (now - firstSeen.get(peerId)! > PEER_CONNECT_GRACE_MS) blocked = true
+      }
+      if (provider.signalingConns.some((c) => c.connected)) setStatus(blocked ? 'blocked' : 'online')
+      else setStatus(now - started < 5000 ? 'connecting' : 'offline')
     }
     check()
     const timer = window.setInterval(check, 1000)

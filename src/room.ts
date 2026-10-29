@@ -1,7 +1,7 @@
 import * as Y from 'yjs'
 import { WebrtcProvider } from 'y-webrtc'
 import type { Awareness } from 'y-protocols/awareness'
-import { SIGNALING_SERVERS } from './config'
+import { ICE_SERVERS, SIGNALING_SERVERS } from './config'
 import { DEFAULT_LANGUAGE, TEMPLATES } from './templates'
 
 /** How long a new session lasts before anyone extends it. */
@@ -119,6 +119,7 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
     signaling: SIGNALING_SERVERS,
     // The code doubles as the encryption key: only people who have it can join.
     password: code,
+    ...(ICE_SERVERS && { peerOpts: { config: { iceServers: ICE_SERVERS } } }),
   })
   const awareness = provider.awareness
   let identity = makeIdentity(new Set())
@@ -184,14 +185,26 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
   if (created) {
     initRoomIfEmpty(room)
   } else {
-    // Give peers a moment to send us the existing session. If nothing arrives
-    // we're alone in the room, so set it up ourselves. When several people are
-    // waiting, only the one with the lowest client ID does it.
-    setTimeout(() => {
-      if (destroyed || (room.meta.has('language') && room.meta.has('expiresAt'))) return
-      const lowest = Math.min(...awareness.getStates().keys())
-      if (lowest === doc.clientID) initRoomIfEmpty(room)
-    }, 3000)
+    // We joined an existing code. Normally a peer sends us the session within a
+    // second. If nobody is there, set the room up ourselves, but only once we're
+    // sure: making our own template while a peer is still connecting would get
+    // both templates merged into the code once the connection comes up.
+    const started = Date.now()
+    const timer = window.setInterval(() => {
+      if (destroyed || (room.meta.has('language') && room.meta.has('expiresAt'))) {
+        window.clearInterval(timer)
+        return
+      }
+      const waited = Date.now() - started
+      if (waited < 3000) return
+      const signalingUp = provider.signalingConns.some((c) => c.connected)
+      const stillConnecting = [...(provider.room?.webrtcConns.values() ?? [])].some((c) => !c.synced)
+      if ((stillConnecting && waited < 20_000) || (!signalingUp && waited < 10_000)) return
+      // Several people waiting in an empty room: only the lowest client ID sets it up.
+      if (Math.min(...awareness.getStates().keys()) !== doc.clientID) return
+      window.clearInterval(timer)
+      initRoomIfEmpty(room)
+    }, 500)
   }
 
   return room

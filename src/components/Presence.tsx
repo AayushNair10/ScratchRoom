@@ -8,6 +8,8 @@ const STATUS_TEXT: Record<ConnectionStatus, string> = {
   connecting: 'Connecting to the signaling server…',
   online: '',
   offline: "Can't reach the signaling server, so nobody else can join right now.",
+  blocked:
+    "Someone is trying to join, but a direct connection to them can't be made. This usually means a strict firewall or company network, which needs a TURN relay server (see the README).",
 }
 
 interface Props {
@@ -53,7 +55,7 @@ export function Presence({ peers, status, onRename }: Props) {
           ))}
         </span>
         <span className="presence__label">
-          {status === 'offline' ? 'Offline' : `${count} connected`}
+          {status === 'offline' ? 'Offline' : status === 'blocked' ? "Can't connect" : `${count} connected`}
         </span>
       </button>
 
