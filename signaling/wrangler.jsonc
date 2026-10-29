@@ -9,8 +9,8 @@
   // SQLite-backed Durable Objects are available on the Workers free plan.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalingHub"] }],
   "vars": {
-    // Optional: lock the server to your site, e.g. "https://scratchroom.pages.dev".
-    // Leave empty to allow any origin.
-    "ALLOWED_ORIGINS": ""
+    // Only these pages may use the signaling server and get TURN credentials.
+    // Comma-separated; leave empty to allow any origin.
+    "ALLOWED_ORIGINS": "https://scratchroom.pages.dev,http://localhost:5173,http://127.0.0.1:5173"
   }
 }
