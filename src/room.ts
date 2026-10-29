@@ -4,6 +4,11 @@ import type { Awareness } from 'y-protocols/awareness'
 import { SIGNALING_SERVERS } from './config'
 import { DEFAULT_LANGUAGE, TEMPLATES } from './templates'
 
+/** How long a new session lasts before anyone extends it. */
+export const SESSION_LENGTH_MS = 2 * 60 * 60 * 1000
+/** What the "+1h" button adds. */
+export const EXTENSION_MS = 60 * 60 * 1000
+
 // ---------- Session codes ----------
 
 const CODE_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789' // no 0/o/1/l lookalikes
@@ -93,8 +98,16 @@ export interface Room {
   meta: Y.Map<unknown>
   provider: WebrtcProvider
   awareness: Awareness
+  /** The nickname this person chose ('' if they're using the default name). */
+  getNickname: () => string
   /** Changes how you appear to others. Empty means the default name. */
   setNickname: (nickname: string) => void
+  /**
+   * Ends the session for this browser: disconnects, then wipes the local copy of
+   * everything. Disconnecting first means a peer whose clock runs fast can't
+   * wipe the session for everyone else; each browser clears itself on expiry.
+   */
+  endSession: () => void
   destroy: () => void
 }
 
@@ -114,7 +127,10 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
 
   // Colours are picked before we know who else is here; once peers show up,
   // swap to a free colour if we clashed with someone who joined earlier.
+  let destroyed = false
+
   setTimeout(() => {
+    if (destroyed) return
     const othersColors = [...awareness.getStates()]
       .filter(([id]) => id !== doc.clientID)
       .map(([id, s]) => ({ id, color: (s.user as UserInfo | undefined)?.color }))
@@ -133,12 +149,30 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
     meta: doc.getMap('meta'),
     provider,
     awareness,
+    getNickname: () => customName,
     setNickname: (value) => {
       customName = cleanNickname(value)
       publishUser()
     },
-    destroy: () => {
+    endSession: () => {
+      if (destroyed) return
+      destroyed = true
+      // disconnect() detaches from the doc synchronously; destroy() alone only
+      // finishes tearing down after an async step, so the wipe below would leak.
+      provider.disconnect()
+      doc.transact(() => {
+        room.code.delete(0, room.code.length)
+        room.stdin.delete(0, room.stdin.length)
+        room.meta.clear()
+      })
       provider.destroy()
+    },
+    destroy: () => {
+      if (!destroyed) {
+        provider.disconnect() // synchronous, so peers see us leave right away
+        provider.destroy()
+      }
+      destroyed = true
       doc.destroy()
     },
   }
@@ -150,7 +184,7 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
     // we're alone in the room, so set it up ourselves. When several people are
     // waiting, only the one with the lowest client ID does it.
     setTimeout(() => {
-      if (room.meta.has('language') || room.code.length > 0) return
+      if (destroyed || (room.meta.has('language') && room.meta.has('expiresAt'))) return
       const lowest = Math.min(...awareness.getStates().keys())
       if (lowest === doc.clientID) initRoomIfEmpty(room)
     }, 3000)
@@ -159,10 +193,13 @@ export function openRoom(code: string, created: boolean, nickname = ''): Room {
   return room
 }
 
-/** Fills an empty room with the default language and its template. */
+/** Fills in whatever a new room is missing: language + template, and the 2-hour timer. */
 export function initRoomIfEmpty(room: Room): void {
   room.doc.transact(() => {
-    if (!room.meta.has('language')) room.meta.set('language', DEFAULT_LANGUAGE)
-    if (room.code.length === 0) room.code.insert(0, TEMPLATES[DEFAULT_LANGUAGE])
+    if (!room.meta.has('language')) {
+      room.meta.set('language', DEFAULT_LANGUAGE)
+      if (room.code.length === 0) room.code.insert(0, TEMPLATES[DEFAULT_LANGUAGE])
+    }
+    if (!room.meta.has('expiresAt')) room.meta.set('expiresAt', Date.now() + SESSION_LENGTH_MS)
   })
 }

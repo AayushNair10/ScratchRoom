@@ -21,7 +21,23 @@ export default function Root() {
   if (room) {
     // Handy for poking at the shared state from the dev-tools console.
     if (import.meta.env.DEV) Object.assign(window, { room })
-    return <App room={room} />
+    return (
+      <App
+        key={room.id}
+        room={room}
+        onNewSession={() => {
+          const nickname = room.getNickname()
+          room.destroy()
+          setRoom(enter(randomCode(), true, nickname))
+        }}
+        onHome={() => {
+          room.destroy()
+          history.replaceState(null, '', window.location.pathname)
+          setLinkCode(null)
+          setRoom(null)
+        }}
+      />
+    )
   }
 
   if (linkCode) {

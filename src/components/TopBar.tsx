@@ -11,10 +11,12 @@ interface Props {
   onRun: () => void
   sessionCode: string
   onCopyCode: () => void
+  timer: ReactNode
   presence: ReactNode
   theme: Theme
   onToggleTheme: () => void
   disabled: boolean
+  onHome: () => void
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
@@ -27,15 +29,17 @@ export function TopBar({
   onRun,
   sessionCode,
   onCopyCode,
+  timer,
   presence,
   theme,
   onToggleTheme,
   disabled,
+  onHome,
 }: Props) {
   return (
     <header className="topbar">
       <div className="topbar__group">
-        <Wordmark />
+        <Wordmark onClick={onHome} />
         <select
           className="select"
           aria-label="Language"
@@ -62,6 +66,8 @@ export function TopBar({
       </div>
 
       <div className="topbar__group">
+        {timer}
+        <span className="topbar__divider" aria-hidden="true" />
         {presence}
         <button
           type="button"

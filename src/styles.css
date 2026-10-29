@@ -870,3 +870,163 @@ kbd {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* ---------- Session timer ---------- */
+
+.topbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timer__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.timer.is-warn .timer__time {
+  color: var(--warn);
+  background: var(--warn-bg);
+  font-weight: 600;
+}
+
+.timer.is-danger .timer__time {
+  color: var(--error);
+  background: var(--error-bg);
+  font-weight: 600;
+}
+
+.timer__extend {
+  padding: 0 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.btn--small {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.btn--icon.btn--small {
+  width: 28px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.expiry-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.expiry-banner.is-danger {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.expiry-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.expiry-banner .btn {
+  color: var(--text);
+}
+
+/* ---------- Session ended overlay ---------- */
+
+.session-ended {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade-in 0.25s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.session-ended__card {
+  width: min(440px, 100%);
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.session-ended__icon {
+  font-size: 34px;
+  margin-bottom: 6px;
+}
+
+.session-ended h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.session-ended p {
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.session-ended__actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wordmark--button {
+  border: 0;
+  background: none;
+  padding: 4px 6px;
+  margin-left: -6px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.wordmark--button:hover {
+  background: var(--surface-2);
+}
+
+.wordmark--button:focus-visible {
+  outline: 2px solid var(--accent);
+}

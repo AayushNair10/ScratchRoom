@@ -31,13 +31,20 @@ function MoonIcon() {
   )
 }
 
-export function Wordmark() {
-  return (
-    <span className="wordmark">
+/** The logo. With `onClick` it becomes a "back to home" button. */
+export function Wordmark({ onClick }: { onClick?: () => void }) {
+  const content = (
+    <>
       <span className="wordmark__mark" aria-hidden="true">
         {'</>'}
       </span>
       Scratchroom
-    </span>
+    </>
+  )
+  if (!onClick) return <span className="wordmark">{content}</span>
+  return (
+    <button type="button" className="wordmark wordmark--button" onClick={onClick} title="Back to home">
+      {content}
+    </button>
   )
 }

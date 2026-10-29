@@ -4,16 +4,20 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { Presence } from './components/Presence'
 import { RemoteCursorStyles } from './components/RemoteCursorStyles'
 import { ResultsPanel } from './components/ResultsPanel'
+import { SessionEnded } from './components/SessionEnded'
+import { ExpiryBanner, SessionTimer } from './components/SessionTimer'
 import { SplitPane } from './components/SplitPane'
 import { StdinPanel } from './components/StdinPanel'
 import { useToast } from './components/Toast'
 import { TopBar } from './components/TopBar'
 import { copyText } from './clipboard'
 import { useConnectionStatus, usePeers } from './hooks/usePresence'
+import { useNow } from './hooks/useNow'
 import { usePythonStatus } from './hooks/usePythonStatus'
 import { useTheme } from './hooks/useTheme'
 import { useYMapValue } from './hooks/useYMapValue'
-import { formatCode, type Room } from './room'
+import { EXTENSION_MS, formatCode, type Room } from './room'
+import { WARN_MS } from './sessionTime'
 import { runCode } from './run/runner'
 import { isRunResult } from './run/types'
 import {
@@ -31,7 +35,14 @@ interface RunningBy {
   at: number
 }
 
-export default function App({ room }: { room: Room }) {
+interface Props {
+  room: Room
+  /** Leaves this (ended) session and starts a fresh one. */
+  onNewSession: () => void
+  onHome: () => void
+}
+
+export default function App({ room, onNewSession, onHome }: Props) {
   const [theme, toggleTheme] = useTheme()
   const storedLanguage = useYMapValue<string>(room.meta, 'language')
   const language: Language = isLanguage(storedLanguage) ? storedLanguage : DEFAULT_LANGUAGE
@@ -42,10 +53,45 @@ export default function App({ room }: { room: Room }) {
   const runningRef = useRef(false)
   const pythonStatus = usePythonStatus()
   const [pendingLanguage, setPendingLanguage] = useState<Language | null>(null)
+  const [confirmLeave, setConfirmLeave] = useState(false)
   const peers = usePeers(room.awareness)
   const connection = useConnectionStatus(room.provider)
   const [toast, showToast] = useToast()
   const sessionCode = formatCode(room.id)
+
+  // ---------- Session timer ----------
+  const now = useNow()
+  const storedExpiry = useYMapValue<unknown>(room.meta, 'expiresAt')
+  const expiresAt = typeof storedExpiry === 'number' ? storedExpiry : null
+  const remainingMs = expiresAt === null ? null : expiresAt - now
+  const [expired, setExpired] = useState(false)
+  const expiredRef = useRef(false)
+  // The banner stays dismissed until the expiry time changes (someone extends).
+  const [dismissedFor, setDismissedFor] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (remainingMs === null || remainingMs > 0 || expiredRef.current) return
+    expiredRef.current = true
+    room.endSession()
+    setExpired(true)
+  }, [remainingMs, room])
+
+  const extend = () => {
+    const current = room.meta.get('expiresAt')
+    if (expiredRef.current || typeof current !== 'number') return
+    room.meta.set('expiresAt', current + EXTENSION_MS)
+  }
+
+  // Tell everyone when the session gets longer, whoever clicked +1h.
+  const previousExpiry = useRef(expiresAt)
+  useEffect(() => {
+    const before = previousExpiry.current
+    previousExpiry.current = expiresAt
+    if (before !== null && expiresAt !== null && expiresAt > before + 1000) {
+      const end = new Date(expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+      showToast(`Session extended: it now ends at ${end}`)
+    }
+  }, [expiresAt, showToast])
 
   const copyCode = async () => {
     showToast((await copyText(sessionCode)) ? 'Copied!' : `Couldn’t copy. The code is ${sessionCode}`)
@@ -81,7 +127,7 @@ export default function App({ room }: { room: Room }) {
   }
 
   const run = useCallback(async () => {
-    if (runningRef.current) return
+    if (runningRef.current || expiredRef.current) return
     runningRef.current = true
     setRunning(true)
     const me = room.awareness.getLocalState()?.user?.name as string | undefined
@@ -90,6 +136,7 @@ export default function App({ room }: { room: Room }) {
     room.meta.set('runningBy', { clientId: room.doc.clientID, name: me ?? '', at: Date.now() })
     try {
       const result = await runCode(lang, room.code.toString(), room.stdin.toString())
+      if (expiredRef.current) return // the session ended while it was running
       room.doc.transact(() => {
         room.meta.set('lastResult', { ...result, ranBy: me, ranById: room.doc.clientID })
         const current = room.meta.get('runningBy') as RunningBy | undefined
@@ -136,15 +183,24 @@ export default function App({ room }: { room: Room }) {
         onRun={run}
         sessionCode={sessionCode}
         onCopyCode={copyCode}
+        timer={<SessionTimer remainingMs={expired ? 0 : remainingMs} onExtend={extend} disabled={expired} />}
         presence={<Presence peers={peers} status={connection} onRename={room.setNickname} />}
         theme={theme}
         onToggleTheme={toggleTheme}
-        disabled={false}
+        disabled={expired}
+        onHome={() => setConfirmLeave(true)}
       />
+      {!expired && remainingMs !== null && remainingMs <= WARN_MS && dismissedFor !== expiresAt && (
+        <ExpiryBanner
+          remainingMs={remainingMs}
+          onExtend={extend}
+          onDismiss={() => setDismissedFor(expiresAt)}
+        />
+      )}
       <main className="workspace">
         <SplitPane
           left={
-            <CodeEditor room={room} language={language} theme={theme} readOnly={false} onRun={run} />
+            <CodeEditor room={room} language={language} theme={theme} readOnly={expired} onRun={run} />
           }
           right={
             <div className="side-panel">
@@ -156,7 +212,7 @@ export default function App({ room }: { room: Room }) {
                 runningLabel={runningLabel}
                 pythonStatus={language === 'python' ? pythonStatus : null}
               />
-              <StdinPanel stdin={room.stdin} readOnly={false} />
+              <StdinPanel stdin={room.stdin} readOnly={expired} />
             </div>
           }
         />
@@ -165,7 +221,23 @@ export default function App({ room }: { room: Room }) {
       <RemoteCursorStyles peers={peers} />
       {toast}
 
-      {pendingLanguage && (
+      {expired && <SessionEnded onNewSession={onNewSession} onHome={onHome} />}
+
+      {confirmLeave && !expired && (
+        <ConfirmDialog
+          message={
+            peers.length <= 1
+              ? 'Leave this session? You’re the only one here, so the code will be lost.'
+              : `Leave this session? You can rejoin later with the code ${sessionCode} while others are still in it.`
+          }
+          confirmLabel="Leave"
+          cancelLabel="Stay"
+          onConfirm={onHome}
+          onCancel={() => setConfirmLeave(false)}
+        />
+      )}
+
+      {pendingLanguage && !expired && (
         <ConfirmDialog
           message={`Replace code with the ${languageLabel(pendingLanguage)} template?`}
           confirmLabel="Replace"

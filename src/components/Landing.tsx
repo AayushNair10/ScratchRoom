@@ -3,12 +3,12 @@ import { useTheme } from '../hooks/useTheme'
 import { formatCode, NICKNAME_MAX_LENGTH, parseCode } from '../room'
 import { ThemeToggle, Wordmark } from './ThemeToggle'
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, onHome }: { children: React.ReactNode; onHome?: () => void }) {
   const [theme, toggleTheme] = useTheme()
   return (
     <div className="landing">
       <header className="landing__top">
-        <Wordmark />
+        <Wordmark onClick={onHome} />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </header>
       <main className="landing__main">{children}</main>
@@ -118,7 +118,7 @@ interface JoinPromptProps {
 export function JoinPrompt({ code, onJoin, onCancel }: JoinPromptProps) {
   const [nickname, setNickname] = useState('')
   return (
-    <Shell>
+    <Shell onHome={onCancel}>
       <h1>
         Join session <span className="mono join-code">{formatCode(code)}</span>
       </h1>
