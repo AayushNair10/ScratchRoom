@@ -283,34 +283,43 @@ export function Whiteboard({ strokes, theme, timer, readOnly, onClose }: Props) 
             className={`btn${tool === 'pen' ? ' is-active' : ''}`}
             aria-pressed={tool === 'pen'}
             onClick={() => setTool('pen')}
+            aria-label="Pen"
             title="Pen (P)"
           >
-            <PenIcon /> Pen
+            <PenIcon /> <span className="btn__label">Pen</span>
           </button>
           <button
             type="button"
             className={`btn${tool === 'eraser' ? ' is-active' : ''}`}
             aria-pressed={tool === 'eraser'}
             onClick={() => setTool('eraser')}
+            aria-label="Eraser"
             title="Eraser: removes any stroke it touches (E)"
           >
-            <EraserIcon /> Eraser
+            <EraserIcon /> <span className="btn__label">Eraser</span>
           </button>
           <button
             type="button"
             className="btn"
             onClick={() => setConfirmClear(true)}
+            aria-label="Clear"
             disabled={readOnly || isEmpty}
             title="Clear the whole board for everyone"
           >
-            <TrashIcon /> Clear
+            <TrashIcon /> <span className="btn__label">Clear</span>
           </button>
         </div>
         <div className="whiteboard__group">
           <span className="whiteboard__hint">Everyone in the session sees this board.</span>
-          {timer}
-          <button type="button" className="btn btn--primary" onClick={onClose} title="Back to the code (Esc)">
-            <CloseIcon /> Close
+          <span className="whiteboard__timer">{timer}</span>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={onClose}
+            title="Back to the code (Esc)"
+            aria-label="Close whiteboard"
+          >
+            <CloseIcon /> <span className="btn__label">Close</span>
           </button>
         </div>
       </div>

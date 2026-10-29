@@ -6,6 +6,11 @@
 //   { type: 'ping' }                          -> { type: 'pong' }
 // It only relays WebRTC handshakes (encrypted by y-webrtc with the room password)
 // and never stores anything.
+//
+// GET /ice-servers hands out short-lived Cloudflare TURN credentials, so peers on
+// networks that block direct connections (college Wi-Fi, mobile data) can relay.
+// It needs the TURN_KEY_ID and TURN_KEY_API_TOKEN secrets; without them it 404s
+// and the app falls back to STUN only.
 
 import { DurableObject } from 'cloudflare:workers'
 
@@ -13,6 +18,9 @@ interface Env {
   SIGNALING: DurableObjectNamespace<SignalingHub>
   /** Optional comma-separated list of allowed page origins, e.g. "https://scratchroom.pages.dev". */
   ALLOWED_ORIGINS?: string
+  /** Cloudflare Realtime TURN key (secrets: `wrangler secret put …`). */
+  TURN_KEY_ID?: string
+  TURN_KEY_API_TOKEN?: string
 }
 
 interface Attachment {
@@ -24,20 +32,69 @@ const MAX_TOPICS_PER_CONNECTION = 32
 const MAX_TOPIC_LENGTH = 256
 const PING = JSON.stringify({ type: 'ping' })
 const PONG = JSON.stringify({ type: 'pong' })
+/** Long enough for a session plus several "+1h" extensions. */
+const TURN_CREDENTIAL_TTL_SECONDS = 12 * 60 * 60
+
+function allowedOrigins(env: Env): string[] {
+  return (env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function isOriginAllowed(request: Request, env: Env): boolean {
+  const allowed = allowedOrigins(env)
+  return !allowed.length || allowed.includes(request.headers.get('Origin') ?? '')
+}
+
+function json(body: unknown, status: number, request: Request, env: Env): Response {
+  const origin = request.headers.get('Origin')
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': allowedOrigins(env).length ? (origin ?? '') : '*',
+      Vary: 'Origin',
+    },
+  })
+}
+
+async function iceServers(request: Request, env: Env): Promise<Response> {
+  if (!isOriginAllowed(request, env)) return json({ error: 'Origin not allowed' }, 403, request, env)
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) {
+    return json({ error: 'TURN is not configured on this server' }, 404, request, env)
+  }
+  const res = await fetch(
+    `https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ttl: TURN_CREDENTIAL_TTL_SECONDS }),
+    },
+  )
+  if (!res.ok) return json({ error: `TURN credential request failed (HTTP ${res.status})` }, 502, request, env)
+  const data = (await res.json()) as { iceServers?: { urls: string | string[] }[] }
+  // Browsers block port 53, so a URL on it would only make connecting slower.
+  const servers = (data.iceServers ?? []).map((server) => ({
+    ...server,
+    urls: ([] as string[]).concat(server.urls).filter((url) => !/:53(\?|$)/.test(url)),
+  }))
+  return json({ iceServers: servers }, 200, request, env)
+}
 
 export default {
   async fetch(request, env): Promise<Response> {
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
+      if (new URL(request.url).pathname === '/ice-servers' && request.method === 'GET') {
+        return iceServers(request, env)
+      }
       return new Response('Scratchroom signaling server: connect with a WebSocket.\n', {
         headers: { 'Content-Type': 'text/plain' },
       })
     }
 
-    const allowed = (env.ALLOWED_ORIGINS ?? '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    if (allowed.length && !allowed.includes(request.headers.get('Origin') ?? '')) {
+    if (!isOriginAllowed(request, env)) {
       return new Response('Origin not allowed', { status: 403 })
     }
 

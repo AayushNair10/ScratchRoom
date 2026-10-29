@@ -12,6 +12,7 @@ import { StdinPanel } from './components/StdinPanel'
 import { useToast } from './components/Toast'
 import { TopBar } from './components/TopBar'
 import { copyText } from './clipboard'
+import { useIsNarrow } from './hooks/useIsNarrow'
 import { useConnectionStatus, usePeers } from './hooks/usePresence'
 import { useNow } from './hooks/useNow'
 import { usePythonStatus } from './hooks/usePythonStatus'
@@ -56,6 +57,17 @@ export default function App({ room, onNewSession, onHome }: Props) {
   const [pendingLanguage, setPendingLanguage] = useState<Language | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [whiteboardOpen, setWhiteboardOpen] = useState(false)
+  // Phones show the editor and the output as tabs instead of side by side.
+  const narrow = useIsNarrow()
+  const [mobileTab, setMobileTab] = useState<'code' | 'output'>('code')
+  // A result that arrived while you were on the Code tab gets a dot on Output.
+  const [seenResultAt, setSeenResultAt] = useState(lastResult?.finishedAt)
+  const unseenResult =
+    mobileTab === 'code' && lastResult !== undefined && lastResult.finishedAt !== seenResultAt
+  const showTab = (tab: 'code' | 'output') => {
+    setMobileTab(tab)
+    setSeenResultAt(lastResult?.finishedAt)
+  }
   const closeWhiteboard = useCallback(() => setWhiteboardOpen(false), [])
   const peers = usePeers(room.awareness)
   const connection = useConnectionStatus(room.provider)
@@ -145,6 +157,7 @@ export default function App({ room, onNewSession, onHome }: Props) {
         const current = room.meta.get('runningBy') as RunningBy | undefined
         if (current?.clientId === room.doc.clientID) room.meta.delete('runningBy')
       })
+      setMobileTab('output')
     } finally {
       runningRef.current = false
       setRunning(false)
@@ -176,6 +189,30 @@ export default function App({ room, onNewSession, onHome }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [run])
 
+  const editorPane = (
+    <div className="editor-pane">
+      <CodeEditor room={room} language={language} theme={theme} readOnly={expired} compact={narrow} onRun={run} />
+      {storedLanguage === undefined && !expired && (
+        <div className="editor-pane__waiting" role="status">
+          <span className="spinner" aria-hidden="true" />
+          Loading the session from the others…
+        </div>
+      )}
+    </div>
+  )
+
+  const sidePanel = (
+    <div className="side-panel">
+      <ResultsPanel
+        result={lastResult}
+        ranBy={peers.find((p) => p.clientId === lastResult?.ranById)?.user.name ?? lastResult?.ranBy}
+        runningLabel={runningLabel}
+        pythonStatus={language === 'python' ? pythonStatus : null}
+      />
+      <StdinPanel stdin={room.stdin} readOnly={expired} />
+    </div>
+  )
+
   return (
     <div className="app">
       <TopBar
@@ -201,33 +238,40 @@ export default function App({ room, onNewSession, onHome }: Props) {
           onDismiss={() => setDismissedFor(expiresAt)}
         />
       )}
-      <main className="workspace">
-        <SplitPane
-          left={
-            <div className="editor-pane">
-              <CodeEditor room={room} language={language} theme={theme} readOnly={expired} onRun={run} />
-              {storedLanguage === undefined && !expired && (
-                <div className="editor-pane__waiting" role="status">
-                  <span className="spinner" aria-hidden="true" />
-                  Loading the session from the others…
-                </div>
-              )}
-            </div>
-          }
-          right={
-            <div className="side-panel">
-              <ResultsPanel
-                result={lastResult}
-                ranBy={
-                  peers.find((p) => p.clientId === lastResult?.ranById)?.user.name ?? lastResult?.ranBy
-                }
-                runningLabel={runningLabel}
-                pythonStatus={language === 'python' ? pythonStatus : null}
-              />
-              <StdinPanel stdin={room.stdin} readOnly={expired} />
-            </div>
-          }
-        />
+      {narrow && (
+        <div className="mobile-tabs" role="tablist" aria-label="Panels">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === 'code'}
+            className={mobileTab === 'code' ? 'is-active' : ''}
+            onClick={() => showTab('code')}
+          >
+            Code
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === 'output'}
+            className={mobileTab === 'output' ? 'is-active' : ''}
+            onClick={() => showTab('output')}
+          >
+            Output &amp; input
+            {(unseenResult || (runningLabel !== null && mobileTab === 'code')) && (
+              <span className="mobile-tabs__dot" aria-label="new output" />
+            )}
+          </button>
+        </div>
+      )}
+      <main className={`workspace${narrow ? ` is-narrow show-${mobileTab}` : ''}`}>
+        {narrow ? (
+          <>
+            {editorPane}
+            {sidePanel}
+          </>
+        ) : (
+          <SplitPane left={editorPane} right={sidePanel} />
+        )}
       </main>
 
       <RemoteCursorStyles peers={peers} />

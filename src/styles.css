@@ -1108,6 +1108,8 @@ kbd {
   left: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
+  max-width: 90%;
+  text-align: center;
   color: var(--text-muted);
   pointer-events: none;
 }
@@ -1136,4 +1138,176 @@ kbd {
   gap: 10px;
   background: var(--surface);
   color: var(--text-muted);
+}
+
+/* ---------- Phone layout ---------- */
+
+.app {
+  height: 100dvh;
+}
+
+.mobile-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.mobile-tabs button {
+  position: relative;
+  flex: 1;
+  height: 40px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-tabs button.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.mobile-tabs__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.workspace.is-narrow {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace.is-narrow > .editor-pane,
+.workspace.is-narrow > .side-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace.show-code > .side-panel,
+.workspace.show-output > .editor-pane {
+  display: none;
+}
+
+.only-narrow {
+  display: none;
+}
+
+.only-wide,
+.only-narrow {
+  line-height: 0;
+}
+
+@media (max-width: 760px) {
+  .only-narrow {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .only-wide {
+    display: none;
+  }
+
+  .topbar__group:first-child .only-narrow + .btn--run {
+    margin-left: 0;
+  }
+
+  .topbar {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .topbar__group {
+    gap: 6px;
+  }
+
+  .topbar__group:first-child {
+    flex: 1 1 auto;
+  }
+
+  .topbar__group:first-child .btn--run {
+    margin-left: auto;
+  }
+
+  .topbar__group--session {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .wordmark {
+    margin-right: 0;
+  }
+
+  .topbar .wordmark__text,
+  .btn__label,
+  .session-code__label,
+  .presence__suffix,
+  .topbar__divider,
+  .whiteboard__title,
+  .whiteboard__timer {
+    display: none;
+  }
+
+  .btn,
+  .select {
+    height: 36px;
+  }
+
+  .btn:has(> .btn__label) {
+    padding: 0 10px;
+  }
+
+  .timer__time {
+    padding: 0 6px;
+  }
+
+  .session-code {
+    padding: 0 8px;
+  }
+
+  .popover {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    margin-top: 6px;
+  }
+
+  .expiry-banner {
+    flex-wrap: wrap;
+  }
+
+  .toast {
+    top: 104px;
+  }
+
+  .whiteboard__toolbar {
+    padding: 0 10px;
+  }
+
+  .landing__main {
+    padding-top: 4vh;
+  }
+
+  .session-ended__card {
+    padding: 22px 18px;
+  }
+
+  /* iOS zooms into any text field under 16px when it's focused. */
+  .input,
+  .select,
+  .stdin__textarea,
+  .monaco-editor textarea {
+    font-size: 16px !important;
+  }
 }

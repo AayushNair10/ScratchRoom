@@ -55,6 +55,9 @@ export function TopBar({
             </option>
           ))}
         </select>
+        <span className="only-narrow">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </span>
         <button
           type="button"
           className="btn btn--run"
@@ -67,12 +70,19 @@ export function TopBar({
         </button>
       </div>
 
-      <div className="topbar__group">
+      <div className="topbar__group topbar__group--session">
         {timer}
         <span className="topbar__divider" aria-hidden="true" />
-        <button type="button" className="btn" onClick={onOpenWhiteboard} disabled={disabled} title="Open the shared whiteboard">
+        <button
+          type="button"
+          className="btn"
+          onClick={onOpenWhiteboard}
+          disabled={disabled}
+          title="Open the shared whiteboard"
+          aria-label="Whiteboard"
+        >
           <BoardIcon />
-          Whiteboard
+          <span className="btn__label">Whiteboard</span>
         </button>
         {presence}
         <button
@@ -86,7 +96,9 @@ export function TopBar({
           <span className="mono">{sessionCode}</span>
           <CopyIcon />
         </button>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <span className="only-wide">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </span>
       </div>
     </header>
   )

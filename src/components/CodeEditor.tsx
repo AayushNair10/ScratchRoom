@@ -36,10 +36,12 @@ interface Props {
   language: Language
   theme: Theme
   readOnly: boolean
+  /** Phone layout: smaller font and gutter. */
+  compact: boolean
   onRun: () => void
 }
 
-export function CodeEditor({ room, language, theme, readOnly, onRun }: Props) {
+export function CodeEditor({ room, language, theme, readOnly, compact, onRun }: Props) {
   const onRunRef = useRef(onRun)
   useEffect(() => {
     onRunRef.current = onRun
@@ -63,7 +65,11 @@ export function CodeEditor({ room, language, theme, readOnly, onRun }: Props) {
       className="code-editor"
       theme={theme === 'dark' ? 'scratchroom-dark' : 'scratchroom-light'}
       language={language}
-      options={{ ...EDITOR_OPTIONS, readOnly }}
+      options={{
+        ...EDITOR_OPTIONS,
+        readOnly,
+        ...(compact && { fontSize: 13, lineHeight: 19, lineNumbersMinChars: 2, folding: false, padding: { top: 8 } }),
+      }}
       onMount={handleMount}
       loading={<div className="panel-placeholder">Loading editor…</div>}
     />

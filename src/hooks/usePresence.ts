@@ -58,8 +58,12 @@ export function useConnectionStatus(provider: WebrtcProvider): ConnectionStatus 
     const check = () => {
       const now = Date.now()
       let blocked = false
-      for (const [peerId, conn] of provider.room?.webrtcConns ?? []) {
-        if (conn.connected) {
+      const room = provider.room
+      for (const [peerId, conn] of room?.webrtcConns ?? []) {
+        // Tabs in the same browser talk over a BroadcastChannel instead. y-webrtc
+        // can still leave a never-answered WebRTC attempt to such a tab behind,
+        // which isn't a real connection problem.
+        if (conn.connected || room?.bcConns.has(peerId)) {
           firstSeen.delete(peerId)
           continue
         }

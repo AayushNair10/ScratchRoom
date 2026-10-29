@@ -55,7 +55,16 @@ export function Presence({ peers, status, onRename }: Props) {
           ))}
         </span>
         <span className="presence__label">
-          {status === 'offline' ? 'Offline' : status === 'blocked' ? "Can't connect" : `${count} connected`}
+          {status === 'offline' ? (
+            'Offline'
+          ) : status === 'blocked' ? (
+            "Can't connect"
+          ) : (
+            <>
+              {count}
+              <span className="presence__suffix"> connected</span>
+            </>
+          )}
         </span>
       </button>
 

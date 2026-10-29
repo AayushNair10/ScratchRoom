@@ -1,7 +1,7 @@
 import * as Y from 'yjs'
 import { WebrtcProvider } from 'y-webrtc'
 import type { Awareness } from 'y-protocols/awareness'
-import { ICE_SERVERS, SIGNALING_SERVERS } from './config'
+import { SIGNALING_SERVERS } from './config'
 import { DEFAULT_LANGUAGE, TEMPLATES } from './templates'
 
 /** How long a new session lasts before anyone extends it. */
@@ -113,13 +113,19 @@ export interface Room {
   destroy: () => void
 }
 
-export function openRoom(code: string, created: boolean, nickname = ''): Room {
+export function openRoom(
+  code: string,
+  created: boolean,
+  nickname = '',
+  iceServers?: RTCIceServer[],
+): Room {
   const doc = new Y.Doc()
   const provider = new WebrtcProvider(`scratchroom-${code}`, doc, {
     signaling: SIGNALING_SERVERS,
     // The code doubles as the encryption key: only people who have it can join.
     password: code,
-    ...(ICE_SERVERS && { peerOpts: { config: { iceServers: ICE_SERVERS } } }),
+    // TURN relays let people on networks that block direct connections still join.
+    ...(iceServers && { peerOpts: { config: { iceServers } } }),
   })
   const awareness = provider.awareness
   let identity = makeIdentity(new Set())

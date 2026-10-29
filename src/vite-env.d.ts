@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_SIGNALING?: string
   /** JSON array of RTCIceServer objects (STUN/TURN). */
   readonly VITE_ICE_SERVERS?: string
+  /** URL that returns { iceServers } with TURN credentials. */
+  readonly VITE_ICE_SERVERS_URL?: string
   /** "wandbox" (default) or "piston": which service runs C, C++ and Java. */
   readonly VITE_RUNNER?: string
   /** Wandbox base URL, default https://wandbox.org */

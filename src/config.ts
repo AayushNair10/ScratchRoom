@@ -35,6 +35,16 @@ export const ICE_SERVERS: RTCIceServer[] | undefined = (() => {
   return undefined
 })()
 
+/**
+ * Where to fetch short-lived TURN credentials (VITE_ICE_SERVERS_URL). Defaults to
+ * /ice-servers on the first signaling server, which the bundled Worker provides.
+ */
+export const ICE_SERVERS_URL: string | undefined =
+  import.meta.env.VITE_ICE_SERVERS_URL ||
+  (SIGNALING_SERVERS[0]
+    ? `${SIGNALING_SERVERS[0].replace(/^ws(s?):\/\//i, 'http$1://').replace(/\/+$/, '')}/ice-servers`
+    : undefined)
+
 /** Piston API base URL (VITE_PISTON_URL), without a trailing slash. */
 export const PISTON_URL: string = (
   import.meta.env.VITE_PISTON_URL || 'https://emkc.org/api/v2/piston'

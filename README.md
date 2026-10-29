@@ -77,7 +77,8 @@ the project root (it's git-ignored; see `.env.example`), one `KEY=value` per lin
 | `VITE_RUNNER` | `wandbox` | Which service runs C, C++ and Java: `wandbox` or `piston`. |
 | `VITE_WANDBOX_URL` | `https://wandbox.org` | Wandbox base URL. |
 | `VITE_PISTON_URL` | `https://emkc.org/api/v2/piston` | Piston API base URL (used when `VITE_RUNNER=piston`). |
-| `VITE_ICE_SERVERS` | y-webrtc defaults (public STUN) | Optional JSON array of STUN/TURN servers, e.g. `[{"urls":"turn:turn.example.com:3478","username":"u","credential":"p"}]`. Only needed for strict networks. |
+| `VITE_ICE_SERVERS_URL` | `/ice-servers` on the first signaling server | Where to fetch short-lived TURN credentials. The bundled Worker serves them once a TURN key is set up (see below). |
+| `VITE_ICE_SERVERS` | none | Optional fixed JSON array of STUN/TURN servers, e.g. `[{"urls":"turn:turn.example.com:3478","username":"u","credential":"p"}]`. Overrides `VITE_ICE_SERVERS_URL`. |
 
 Example `.env.local`:
 
@@ -104,6 +105,26 @@ npx wrangler deploy    # prints https://scratchroom-signaling.<your-subdomain>.w
 Use that URL as `VITE_SIGNALING`. Once your site is deployed, you can restrict the Worker to it
 by setting `ALLOWED_ORIGINS` in `signaling/wrangler.jsonc` (e.g. `"https://scratchroom.pages.dev"`)
 and running `npx wrangler deploy` again.
+
+#### TURN relay (recommended)
+
+Direct browser-to-browser connections fail on many college/company Wi-Fi networks and on
+mobile data. A TURN relay fixes that; Cloudflare's is free for the first 1,000 GB a month, and
+the Worker hands out short-lived credentials for it at `/ice-servers`:
+
+1. In the Cloudflare dashboard, open **Realtime → TURN Server** and create a TURN key. Copy
+   its **Turn Token ID** and **API Token**.
+2. Store them as Worker secrets:
+   ```bash
+   cd signaling
+   npx wrangler secret put TURN_KEY_ID          # paste the Turn Token ID
+   npx wrangler secret put TURN_KEY_API_TOKEN   # paste the API Token
+   ```
+3. Check `https://scratchroom-signaling.<your-subdomain>.workers.dev/ice-servers` returns an
+   `iceServers` list. The site picks it up automatically; no rebuild needed.
+
+Traffic through the relay stays end-to-end encrypted with the session code. Set
+`ALLOWED_ORIGINS` (below) so only your site can request credentials.
 
 For local testing of the Worker itself: `cd signaling && npm run dev` (also listens on port 4444).
 
@@ -181,9 +202,9 @@ signaling/                 Cloudflare Worker signaling server
 - **Nothing is persisted.** If everyone leaves (or the only person reloads), the session's
   contents are gone. Reopening an old code when nobody is in it starts a fresh, empty 2-hour
   session under that code.
-- **Peer-to-peer needs a working WebRTC path.** Without a TURN relay, some strict corporate or
-  school networks block direct connections; you'll see "Can't connect". Configure a TURN server
-  with `VITE_ICE_SERVERS` to fix this.
+- **Peer-to-peer needs a working WebRTC path.** Without a TURN relay, college/company Wi-Fi
+  and mobile data often block direct connections; you'll see "Can't connect". Set up the TURN
+  relay described under *Deploy* to fix this.
 - **The timer trusts each computer's clock.** Each browser ends the session when *its* clock
   passes the shared end time. A computer whose clock is wrong ends early or late for itself only;
   it can't end the session for others.
@@ -200,6 +221,7 @@ signaling/                 Cloudflare Worker signaling server
   or colour choice by design.
 - **Session codes are the only access control.** Anyone with the code can join; there's no
   host, kick or lock.
-- **Desktop-first layout.** It works on laptops; phones and tablets are only supported for the
-  whiteboard.
+- **Phones** get a tabbed Code / Output layout, but Monaco (the editor) isn't designed for touch:
+  selecting text and on-screen keyboards can be fiddly. It's best for following along, small
+  edits and the whiteboard.
 - The bundle is about 1 MB gzipped (mostly the Monaco editor).

@@ -38,7 +38,7 @@ export function Wordmark({ onClick }: { onClick?: () => void }) {
       <span className="wordmark__mark" aria-hidden="true">
         {'</>'}
       </span>
-      Scratchroom
+      <span className="wordmark__text">Scratchroom</span>
     </>
   )
   if (!onClick) return <span className="wordmark">{content}</span>
